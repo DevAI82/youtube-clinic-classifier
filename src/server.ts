@@ -1,0 +1,534 @@
+import express from 'express';
+import cors from 'cors';
+import { getVideos, getVideoById, getCommentsByVideoId, getStatistics } from './database.js';
+
+export function createServer(): express.Express {
+  const app = express();
+  app.use(cors());
+  app.use(express.json());
+
+  app.get('/api/statistics', (_req: express.Request, res: express.Response): void => {
+    try {
+      res.json({ success: true, data: getStatistics() });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Error' });
+    }
+  });
+
+  app.get('/api/videos', (_req: express.Request, res: express.Response): void => {
+    try {
+      res.json({ success: true, data: getVideos() });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Error' });
+    }
+  });
+
+  app.get('/api/videos/:videoId', (req: express.Request, res: express.Response): void => {
+    const video = getVideoById(req.params.videoId);
+    if (!video) {
+      res.status(404).json({ success: false });
+      return;
+    }
+    res.json({ success: true, data: { video, comments: getCommentsByVideoId(req.params.videoId) } });
+  });
+
+  app.get('/api/videos/:videoId/comments', (req: express.Request, res: express.Response): void => {
+    const video = getVideoById(req.params.videoId);
+    if (!video) {
+      res.status(404).json({ success: false });
+      return;
+    }
+    let commentsList = getCommentsByVideoId(req.params.videoId);
+    const type = req.query.type as string | undefined;
+    if (type && type !== 'all') {
+      commentsList = commentsList.filter((c) => (c.inquiryType || 'no_aplica') === type);
+    }
+    res.json({ success: true, data: commentsList });
+  });
+
+  app.get('/', (_req: express.Request, res: express.Response): void => {
+    res.send(getDashboardHTML());
+  });
+
+  return app;
+}
+
+function getDashboardHTML() {
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Clinic Classifier · Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<style>${DASHBOARD_CSS}</style>
+</head><body>${DASHBOARD_BODY}<script>${DASHBOARD_JS}</script></body></html>`;
+}
+const DASHBOARD_CSS = `
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1220;--panel:#171b2e;--panel-2:#1e2338;--border:#2a3050;
+  --text:#eef0ff;--muted:#8d93b8;--accent:#7c5cff;--accent-2:#4fd1c5;
+  --hot:#ff5d73;--warn:#ffb84f;--good:#4fd18f;
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:1440px;margin:0 auto;padding:24px}
+header{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;background:linear-gradient(135deg,#20264a,#171b2e);border:1px solid var(--border);border-radius:16px;margin-bottom:24px}
+header .brand{display:flex;align-items:center;gap:14px}
+header .brand .logo{font-size:2em}
+header h1{font-size:1.4em;font-weight:700}
+header .subtitle{color:var(--muted);font-size:.85em;margin-top:2px}
+header .refresh-btn{background:var(--accent);color:#fff;border:none;padding:10px 18px;border-radius:10px;font-weight:600;cursor:pointer;font-size:.9em;transition:.2s}
+header .refresh-btn:hover{background:#6a4ce0;transform:translateY(-1px)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--panel);border:1px solid var(--border);padding:22px;border-radius:14px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-color,var(--accent))}
+.stat-card .label{color:var(--muted);font-size:.8em;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.stat-card .value{font-size:2.1em;font-weight:800;letter-spacing:-.02em}
+.stat-card .sub{color:var(--muted);font-size:.8em;margin-top:6px}
+.stat-card.hot{--accent-color:var(--hot)}
+.stat-card.hot .value{color:var(--hot)}
+.stat-card.good{--accent-color:var(--good)}
+.stat-card.warn{--accent-color:var(--warn)}
+.grid-2{display:grid;grid-template-columns:1.1fr 1.6fr;gap:20px;margin-bottom:24px}
+@media(max-width:1000px){.grid-2{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:24px}
+.panel h2{font-size:1.05em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.type-legend{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.type-legend .row{display:flex;align-items:center;gap:10px;font-size:.85em}
+.type-legend .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.type-legend .name{flex:1;color:var(--text)}
+.type-legend .count{font-weight:700;color:var(--muted)}
+.filter-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.filter-chip{background:var(--panel-2);border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:999px;font-size:.82em;cursor:pointer;font-weight:600;transition:.15s;display:flex;align-items:center;gap:6px}
+.filter-chip .dot{width:8px;height:8px;border-radius:50%}
+.filter-chip:hover{border-color:var(--accent);color:var(--text)}
+.filter-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.sort-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:.85em;color:var(--muted)}
+.sort-bar select{background:var(--panel-2);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:8px;font-size:.9em}
+.video-card{background:var(--panel-2);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;transition:.15s;cursor:pointer}
+.video-card:hover{border-color:var(--accent);transform:translateX(2px)}
+.video-card.expanded{border-color:var(--accent)}
+.video-card .vhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.video-card .vtitle{font-weight:700;font-size:.98em;margin-bottom:6px;line-height:1.3}
+.video-card .vmeta{color:var(--muted);font-size:.78em;display:flex;gap:14px;flex-wrap:wrap}
+.video-card .vbadges{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.badge{padding:5px 10px;border-radius:999px;font-size:.72em;font-weight:700;white-space:nowrap}
+.badge.hot{background:rgba(255,93,115,.16);color:var(--hot)}
+.badge.total{background:rgba(124,92,255,.16);color:#b3a3ff}
+.badge.conf{background:rgba(79,209,143,.16);color:var(--good)}
+.vbar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:12px 0 4px;background:var(--border)}
+.vbar .seg{height:100%}
+.vdetail{display:none;margin-top:16px;padding-top:16px;border-top:1px dashed var(--border)}
+.video-card.expanded .vdetail{display:block}
+.vdetail .comment-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.vdetail .comment-filter button{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:5px 11px;border-radius:999px;font-size:.72em;cursor:pointer;font-weight:600}
+.vdetail .comment-filter button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.comment-row{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:.85em}
+.comment-row .crow-top{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px;align-items:center}
+.comment-row .author{font-weight:700;color:var(--text)}
+.comment-row .ctext{color:#c7cae6;line-height:1.4}
+.tag{font-size:.68em;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.empty-state{color:var(--muted);text-align:center;padding:40px 20px;font-size:.9em}
+.loading{color:var(--muted);text-align:center;padding:60px 20px}
+.ranking-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.ranking-item:last-child{border-bottom:none}
+.ranking-item .rank{width:28px;height:28px;border-radius:50%;background:var(--panel-2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8em;flex-shrink:0}
+.ranking-item:nth-child(1) .rank{background:linear-gradient(135deg,#ffd76b,#ff9d4d);color:#1a1a1a}
+.ranking-item:nth-child(2) .rank{background:linear-gradient(135deg,#d9d9e6,#a8adc7);color:#1a1a1a}
+.ranking-item:nth-child(3) .rank{background:linear-gradient(135deg,#e0a15a,#b97a3d);color:#1a1a1a}
+.ranking-item .rinfo{flex:1;min-width:0}
+.ranking-item .rtitle{font-size:.85em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ranking-item .rsub{font-size:.72em;color:var(--muted)}
+.ranking-item .rvalue{font-weight:800;color:var(--hot);font-size:1em;flex-shrink:0}
+canvas{max-height:280px}
+`;
+
+const DASHBOARD_BODY = `
+<div class="container">
+  <header>
+    <div class="brand">
+      <div class="logo">🎬</div>
+      <div>
+        <h1>YouTube Clinic Classifier</h1>
+        <div class="subtitle">Clasificación de comentarios con IA (Jev) · Detección de leads</div>
+      </div>
+    </div>
+    <button class="refresh-btn" onclick="loadAll()">↻ Actualizar</button>
+  </header>
+
+  <div class="stats-grid" id="stats"><div class="loading">Cargando estadísticas...</div></div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>🌟 Desglose de Leads Potenciales</h2>
+      <canvas id="leadsChart"></canvas>
+      <div class="type-legend" id="leadsLegend"></div>
+    </div>
+    <div class="panel">
+      <h2>📊 Distribución por Tipo de Consulta (todos)</h2>
+      <canvas id="typeChart"></canvas>
+      <div class="type-legend" id="typeLegend"></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>🌟 Top Videos por Leads Potenciales</h2>
+      <div id="ranking"><div class="loading">Cargando ranking...</div></div>
+    </div>
+    <div class="panel">
+      <h2>ℹ️ ¿Qué es un "Lead Potencial"?</h2>
+      <div class="type-legend" style="margin-top:0">
+        <div class="row"><div class="dot" style="background:#ff5d73"></div><div class="name"><b>Pedir cita/Agendar</b> — pide cita explícitamente, acción directa</div></div>
+        <div class="row"><div class="dot" style="background:#ffd76b"></div><div class="name"><b>Lead potencial</b> — expone su caso y pide orientación, nunca ha sido paciente</div></div>
+        <div class="row"><div class="dot" style="background:#c77dff"></div><div class="name"><b>Seguimiento/Recontacto</b> — paciente activo con dudas o problemas de tratamiento</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>🎥 Videos Analizados</h2>
+    <div class="filter-bar" id="typeFilterBar"></div>
+    <div class="sort-bar">
+      Ordenar por:
+      <select id="sortSelect" onchange="renderVideos()">
+        <option value="potentialLeads">🌟 Leads potenciales (mayor a menor)</option>
+        <option value="hotLeads">🔥 Leads calientes (mayor a menor)</option>
+        <option value="totalComments">💬 Total de comentarios</option>
+        <option value="clinicInquiries">🏥 Consultas clínicas</option>
+        <option value="averageConfidence">🎯 Confianza promedio</option>
+        <option value="date">📅 Fecha de publicación</option>
+      </select>
+    </div>
+    <div id="videosList"><div class="loading">Cargando videos...</div></div>
+  </div>
+</div>
+`;
+
+const DASHBOARD_JS = `
+const TYPE_META = {
+  pedir_cita_agendar: { label: '🎯 Pedir cita / Agendar', color: '#ff5d73' },
+  lead_potencial: { label: '🌟 Lead potencial', color: '#ffd76b' },
+  medicacion_tratamiento: { label: '💊 Medicación / Tratamiento', color: '#ffb84f' },
+  injertos_trasplante: { label: '✂️ Injertos / Trasplante', color: '#7c5cff' },
+  consulta_general: { label: '📞 Consulta general', color: '#4fd1c5' },
+  dudas_preguntas: { label: '❓ Dudas / Preguntas', color: '#5aa9ff' },
+  seguimiento_recontacto: { label: '🔄 Seguimiento / Recontacto', color: '#c77dff' },
+  no_aplica: { label: '💬 No aplica', color: '#3a4066' },
+};
+const TYPE_ORDER = Object.keys(TYPE_META);
+const LEAD_TYPES = ['pedir_cita_agendar', 'lead_potencial', 'seguimiento_recontacto'];
+
+let STATE = { stats: null, videos: [], activeTypeFilter: 'all', expandedVideo: null, expandedTypeFilter: 'all', typeChart: null, leadsChart: null };
+
+async function loadAll(){
+  const [statsRes, videosRes] = await Promise.all([
+    fetch('/api/statistics').then(r=>r.json()),
+    fetch('/api/videos').then(r=>r.json()),
+  ]);
+  STATE.stats = statsRes.data;
+  STATE.videos = videosRes.data;
+  renderStats();
+  renderLeadsChart();
+  renderTypeChart();
+  renderRanking();
+  renderTypeFilterBar();
+  renderVideos();
+}
+
+function totalPotentialLeads(){
+  const breakdown = STATE.stats.inquiryTypeBreakdown;
+  return LEAD_TYPES.reduce((sum, t) => sum + (breakdown[t] || 0), 0);
+}
+
+function renderStats(){
+  const s = STATE.stats;
+  const hotLeads = s.inquiryTypeBreakdown.pedir_cita_agendar || 0;
+  const leads = totalPotentialLeads();
+  const leadsPct = s.totalComments > 0 ? (leads / s.totalComments) * 100 : 0;
+  const responseRate = s.totalComments > 0 ? (s.repliedByDoctor / s.totalComments) * 100 : 0;
+  document.getElementById('stats').innerHTML = \`
+    <div class="stat-card hot">
+      <div class="label">🌟 Leads potenciales (total)</div>
+      <div class="value">\${leads.toLocaleString()}</div>
+      <div class="sub"><b style="color:#ff5d73">\${s.leadsPending} sin responder</b> · \${s.leadsReplied} ya respondido</div>
+    </div>
+    <div class="stat-card warn">
+      <div class="label">📈 Tasa de respuesta del canal</div>
+      <div class="value">\${responseRate.toFixed(1)}%</div>
+      <div class="sub">\${s.repliedByDoctor} / \${s.totalComments.toLocaleString()} comentarios respondidos</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">📺 Videos analizados</div>
+      <div class="value">\${s.totalVideos}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">💬 Total comentarios</div>
+      <div class="value">\${s.totalComments.toLocaleString()}</div>
+    </div>
+    <div class="stat-card good">
+      <div class="label">🏥 Consultas clínicas (todas)</div>
+      <div class="value">\${s.clinicInquiries.toLocaleString()}</div>
+      <div class="sub">\${s.clinicPercentage.toFixed(1)}% del total</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">🎯 Confianza promedio</div>
+      <div class="value">\${(s.averageConfidence*100).toFixed(1)}%</div>
+    </div>
+  \`;
+}
+
+function renderLeadsChart(){
+  const breakdown = STATE.stats.inquiryTypeBreakdown;
+  const labels = LEAD_TYPES.map(t => TYPE_META[t].label);
+  const data = LEAD_TYPES.map(t => breakdown[t] || 0);
+  const colors = LEAD_TYPES.map(t => TYPE_META[t].color);
+  const ctx = document.getElementById('leadsChart').getContext('2d');
+  if (STATE.leadsChart) STATE.leadsChart.destroy();
+  STATE.leadsChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+    plugins: [ChartDataLabels],
+    options: {
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          color: '#0f1220',
+          font: { weight: 800, size: 13 },
+          formatter: (value, ctx) => {
+            const t = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0) || 1;
+            return value > 0 ? Math.round((value/t)*100) + '%' : '';
+          },
+        },
+      },
+      cutout: '65%',
+    },
+  });
+  const total = data.reduce((a,b)=>a+b,0) || 1;
+  document.getElementById('leadsLegend').innerHTML = LEAD_TYPES.map((t,i) => \`
+    <div class="row">
+      <div class="dot" style="background:\${colors[i]}"></div>
+      <div class="name">\${labels[i]}</div>
+      <div class="count">\${data[i]} (\${((data[i]/total)*100).toFixed(0)}%)</div>
+    </div>
+  \`).join('');
+}
+
+function renderTypeChart(){
+  const breakdown = STATE.stats.inquiryTypeBreakdown;
+  const labels = TYPE_ORDER.map(t => TYPE_META[t].label);
+  const data = TYPE_ORDER.map(t => breakdown[t] || 0);
+  const colors = TYPE_ORDER.map(t => TYPE_META[t].color);
+  const ctx = document.getElementById('typeChart').getContext('2d');
+  if (STATE.typeChart) STATE.typeChart.destroy();
+  STATE.typeChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+    plugins: [ChartDataLabels],
+    options: {
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          color: '#0f1220',
+          font: { weight: 800, size: 12 },
+          formatter: (value, ctx) => {
+            const t = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0) || 1;
+            const pct = (value/t)*100;
+            return pct >= 3 ? Math.round(pct) + '%' : '';
+          },
+        },
+      },
+      cutout: '65%',
+    },
+  });
+  const total = data.reduce((a,b)=>a+b,0) || 1;
+  document.getElementById('typeLegend').innerHTML = TYPE_ORDER.map((t,i) => \`
+    <div class="row">
+      <div class="dot" style="background:\${colors[i]}"></div>
+      <div class="name">\${labels[i]}</div>
+      <div class="count">\${data[i]} (\${((data[i]/total)*100).toFixed(0)}%)</div>
+    </div>
+  \`).join('');
+}
+
+function renderRanking(){
+  const top = [...STATE.videos].sort((a,b)=>b.potentialLeads - a.potentialLeads).slice(0,8).filter(v=>v.potentialLeads>0);
+  const el = document.getElementById('ranking');
+  if (top.length === 0) {
+    el.innerHTML = '<div class="empty-state">Todavía no hay leads potenciales 🙌</div>';
+    return;
+  }
+  el.innerHTML = top.map((v,i) => \`
+    <div class="ranking-item">
+      <div class="rank">\${i+1}</div>
+      <div class="rinfo">
+        <div class="rtitle">\${escapeHtml(v.title)}</div>
+        <div class="rsub">\${v.totalComments} comentarios · \${v.hotLeads} piden cita</div>
+      </div>
+      <div class="rvalue">🌟 \${v.potentialLeads}</div>
+    </div>
+  \`).join('');
+}
+
+function setTypeFilter(type){
+  STATE.activeTypeFilter = type;
+  renderTypeFilterBar();
+  renderVideos();
+}
+
+function renderTypeFilterBar(){
+  const breakdown = STATE.stats.inquiryTypeBreakdown;
+  const chips = ['all', ...TYPE_ORDER].map(t => {
+    const isAll = t === 'all';
+    const label = isAll ? '🌐 Todos' : TYPE_META[t].label;
+    const count = isAll ? STATE.stats.totalComments : (breakdown[t] || 0);
+    const dot = isAll ? '' : \`<span class="dot" style="background:\${TYPE_META[t].color}"></span>\`;
+    const active = STATE.activeTypeFilter === t ? 'active' : '';
+    return \`<button class="filter-chip \${active}" onclick="setTypeFilter('\${t}')">\${dot}\${label} · \${count}</button>\`;
+  }).join('');
+  document.getElementById('typeFilterBar').innerHTML = chips;
+}
+
+function videoMatchesFilter(v){
+  if (STATE.activeTypeFilter === 'all') return true;
+  return (v.inquiryTypeBreakdown[STATE.activeTypeFilter] || 0) > 0;
+}
+
+function renderVideos(){
+  const sortBy = document.getElementById('sortSelect').value;
+  let list = STATE.videos.filter(videoMatchesFilter);
+  list = [...list].sort((a,b) => {
+    if (sortBy === 'date') return new Date(b.publishedAt) - new Date(a.publishedAt);
+    if (sortBy === 'averageConfidence') return b.averageConfidence - a.averageConfidence;
+    if (sortBy === 'hotLeads') return b.hotLeads - a.hotLeads;
+    return (b[sortBy]||0) - (a[sortBy]||0);
+  });
+  const el = document.getElementById('videosList');
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty-state">No hay videos que coincidan con este filtro</div>';
+    return;
+  }
+  el.innerHTML = list.map(v => renderVideoCard(v)).join('');
+}
+
+function renderVideoCard(v){
+  const total = v.totalComments || 1;
+  const segs = TYPE_ORDER.map(t => {
+    const count = v.inquiryTypeBreakdown[t] || 0;
+    const pct = (count/total)*100;
+    if (pct <= 0) return '';
+    return \`<div class="seg" style="width:\${pct}%;background:\${TYPE_META[t].color}" title="\${TYPE_META[t].label}: \${count}"></div>\`;
+  }).join('');
+  const isExpanded = STATE.expandedVideo === v.id;
+  const dateStr = new Date(v.publishedAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
+  return \`
+    <div class="video-card \${isExpanded ? 'expanded' : ''}" id="card-\${v.id}">
+      <div class="vhead" onclick="toggleVideo('\${v.id}')">
+        <div>
+          <div class="vtitle">\${escapeHtml(v.title)}</div>
+          <div class="vmeta">
+            <span>📅 \${dateStr}</span>
+            <span>👁 \${(v.viewCount||0).toLocaleString()} vistas</span>
+          </div>
+        </div>
+        <div class="vbadges">
+          \${v.hotLeads > 0 ? \`<span class="badge hot">🔥 \${v.hotLeads} leads</span>\` : ''}
+          <span class="badge total">💬 \${v.totalComments}</span>
+          <span class="badge conf">🎯 \${(v.averageConfidence*100).toFixed(0)}%</span>
+        </div>
+      </div>
+      <div class="vbar">\${segs}</div>
+      <div class="vdetail" id="detail-\${v.id}">
+        \${isExpanded ? renderVideoDetail(v) : ''}
+      </div>
+    </div>
+  \`;
+}
+
+async function toggleVideo(id){
+  if (STATE.expandedVideo === id) {
+    STATE.expandedVideo = null;
+  } else {
+    STATE.expandedVideo = id;
+    STATE.expandedTypeFilter = 'all';
+  }
+  renderVideos();
+  if (STATE.expandedVideo) await loadVideoComments(STATE.expandedVideo);
+}
+
+function renderVideoDetail(v){
+  const chips = ['all', ...TYPE_ORDER].map(t => {
+    const isAll = t === 'all';
+    const label = isAll ? 'Todos' : TYPE_META[t].label;
+    const count = isAll ? v.totalComments : (v.inquiryTypeBreakdown[t] || 0);
+    const active = STATE.expandedTypeFilter === t ? 'active' : '';
+    return \`<button class="\${active}" onclick="event.stopPropagation(); setCommentFilter('\${v.id}','\${t}')">\${label} (\${count})</button>\`;
+  }).join('');
+  return \`
+    <div class="comment-filter">\${chips}</div>
+    <div id="commentsFor-\${v.id}"><div class="loading">Cargando comentarios...</div></div>
+  \`;
+}
+
+async function setCommentFilter(videoId, type){
+  STATE.expandedTypeFilter = type;
+  const card = document.getElementById('detail-'+videoId);
+  const v = STATE.videos.find(x=>x.id===videoId);
+  card.innerHTML = renderVideoDetail(v);
+  await loadVideoComments(videoId);
+}
+
+async function loadVideoComments(videoId){
+  const type = STATE.expandedTypeFilter;
+  const res = await fetch('/api/videos/'+videoId+'/comments?type='+encodeURIComponent(type));
+  const json = await res.json();
+  const container = document.getElementById('commentsFor-'+videoId);
+  if (!container) return;
+  const commentsList = json.data || [];
+  if (commentsList.length === 0) {
+    container.innerHTML = '<div class="empty-state">No hay comentarios de este tipo</div>';
+    return;
+  }
+  const sorted = [...commentsList].sort((a,b)=>b.confidence-a.confidence).slice(0,50);
+  container.innerHTML = sorted.map(c => {
+    const meta = TYPE_META[c.inquiryType || 'no_aplica'] || TYPE_META.no_aplica;
+    const replyBadge = c.doctorReplied === true
+      ? '<span class="tag" style="background:#4fd18f22;color:#4fd18f">✅ Respondido</span>'
+      : c.doctorReplied === null
+        ? '<span class="tag" style="background:#8d93b822;color:#8d93b8">❔ Sin verificar</span>'
+        : '';
+    return \`
+      <div class="comment-row">
+        <div class="crow-top">
+          <span class="author">\${escapeHtml(c.author)}</span>
+          <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+            \${replyBadge}
+            <span class="tag" style="background:\${meta.color}22;color:\${meta.color}">\${meta.label} · \${(c.confidence*100).toFixed(0)}%</span>
+          </span>
+        </div>
+        <div class="ctext">\${escapeHtml(c.text)}</div>
+      </div>
+    \`;
+  }).join('');
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+document.addEventListener('DOMContentLoaded', loadAll);
+`;
+
+
+
+
+export async function startServer(port: number): Promise<void> {
+  const app = createServer();
+  return new Promise<void>((resolve) => {
+    app.listen(port, () => {
+      console.log(`\n✅ Dashboard: http://localhost:${port}\n`);
+      resolve();
+    });
+  });
+}
