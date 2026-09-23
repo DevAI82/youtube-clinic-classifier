@@ -323,9 +323,9 @@
 
           <!-- Contact capture node -->
           <rect x="240" y="80" width="160" height="90" rx="14" fill="var(--paper-2)" stroke="var(--ink-soft)" stroke-width="2"/>
-          <text x="320" y="115" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="15">Pide contacto</text>
-          <text x="320" y="133" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--ink-soft)">email o teléfono,</text>
-          <text x="320" y="147" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--ink-soft)">con contexto real</text>
+          <text x="320" y="112" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="15">Responde en</text>
+          <text x="320" y="129" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="15">YouTube</text>
+          <text x="320" y="150" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-soft)">API + link WhatsApp</text>
 
           <!-- to Resend -->
           <line x1="400" y1="105" x2="464" y2="60" stroke="var(--teal)" stroke-width="1.8" marker-end="url(#arrow2)"/>
@@ -354,18 +354,28 @@
           <text x="800" y="120" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="14" fill="var(--coral)">Cita agendada</text>
           <text x="800" y="138" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--coral)">o escalado a humano</text>
         </svg>
-        <figcaption>El dashboard dice a quién escribir; el sistema pide el contacto y nutre por el canal correcto — email de baja fricción vía Resend, conversación real vía Altera.</figcaption>
+        <figcaption>El dashboard dice a quién escribir; el sistema responde en el propio comentario de YouTube con un enlace de WhatsApp, y desde ahí nutre por el canal correcto.</figcaption>
       </figure>
     </div>
 
     <div class="case-block">
-      <p>Hoy, aunque tengas la lista de 276 nombres, alguien tiene que entrar, leer cada comentario y escribir el primer mensaje pidiendo su contacto. Esto es lo que automatizamos:</p>
+      <p>Hoy, aunque tengas la lista de 276 nombres, alguien tiene que entrar a YouTube, leer cada comentario y escribir la respuesta a mano. Esto es lo que automatizamos — y cómo, exactamente:</p>
       <ul>
-        <li><b>Mensaje con contexto real</b>, no genérico — "Vimos tu comentario en [vídeo] sobre [su caso]... ¿nos dejas tu email o WhatsApp para ayudarte?" — es el propio canal el que pide el dato, con un motivo de contacto legítimo y verificable.</li>
-        <li><b>Dos canales según el lead.</b> Email vía <b>Resend</b> para nutrir con contenido y recordatorios a bajo coste; <b>WhatsApp con Altera</b> cuando hace falta conversación real — cualifica, resuelve dudas básicas y solo te avisa cuando hay intención seria de agendar.</li>
-        <li><b>Cierra el embudo completo.</b> Detección (JEV + Claude) → contacto (Resend / Altera) → conversión (tú). Dejas de vender "una lista de leads" y pasas a vender el sistema entero.</li>
+        <li><b>Mensaje con contexto real</b>, no genérico — "Vimos tu comentario en [vídeo] sobre [su caso]..." — con un enlace directo de WhatsApp (<span class="mono">wa.me/...</span>) al final, no un "dame tu teléfono" — un clic y ya está hablando contigo, sin fricción ni tener que escribir nada.</li>
+        <li><b>Dos canales según el lead.</b> Si prefiere email, la conversación sigue por <b>Resend</b> con contenido y recordatorios a bajo coste; si entra por WhatsApp, <b>Altera</b> cualifica, resuelve dudas básicas y solo te avisa cuando hay intención seria de agendar.</li>
+        <li><b>Cierra el embudo completo.</b> Detección (JEV + Claude) → respuesta (API de YouTube) → contacto (Resend / Altera) → conversión (tú). Dejas de vender "una lista de leads" y pasas a vender el sistema entero.</li>
       </ul>
-      <p style="margin-top:14px;font-size:.85em;color:var(--ink-soft)">Nota: quien contacta a cada persona es siempre el propio doctor, con un fin legítimo (atención al paciente) y sobre su propia audiencia — el sistema solo automatiza el primer mensaje y la cualificación.</p>
+    </div>
+
+    <div class="case-block" style="margin-top:16px">
+      <h3 style="font-size:1.05em;margin:0 0 10px">Cómo se publica la respuesta en YouTube, paso a paso</h3>
+      <ol class="method-items">
+        <li><b>Autorización única.</b> Conectas tu cuenta de YouTube igual que cuando das permiso a cualquier app de Google — un clic, sin compartir contraseñas. Solo tú, como dueño del canal, puedes autorizarlo.</li>
+        <li><b>Redacción personalizada por lead.</b> Claude escribe cada una de las 276 respuestas leyendo el comentario real de esa persona — no es una plantilla copiada 276 veces, es un mensaje distinto para cada caso.</li>
+        <li><b>Publicación por la misma API que ya usamos para leer</b> los comentarios (YouTube Data API), a un ritmo pausado — unas pocas por hora, no todas de golpe — para que se vea (porque lo es) como una respuesta genuina tuya, no un aviso masivo automatizado.</li>
+        <li><b>Registro para no duplicar.</b> Cada respuesta publicada queda marcada, igual que ya hacemos hoy para saber quién tiene respuesta y quién no — así nunca se le escribe dos veces a la misma persona.</li>
+      </ol>
+      <p style="margin-top:14px;font-size:.85em;color:var(--ink-soft)">Nota: quien responde a cada persona es siempre el propio doctor, con un fin legítimo (atención al paciente) y sobre su propia audiencia — el sistema solo automatiza redactar y publicar ese primer mensaje.</p>
     </div>
   </section>
 
