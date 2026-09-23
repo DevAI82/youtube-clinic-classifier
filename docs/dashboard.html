@@ -119,7 +119,7 @@ canvas{max-height:280px}
 
   <div class="grid-2">
     <div class="panel">
-      <h2>🌟 Top Videos por Leads Potenciales</h2>
+      <h2>🚨 Top Vídeos por Leads Sin Responder</h2>
       <div id="ranking"></div>
     </div>
     <div class="panel">
@@ -223,10 +223,12 @@ function buildVideos(){
     const inquiryTypeBreakdown = computeBreakdown(vc);
     OTHER_CLINIC_TYPES.forEach(t => inquiryTypeBreakdown[t] = (v.typeCounts && v.typeCounts[t]) || 0);
     inquiryTypeBreakdown['no_aplica'] = v.otherComments || 0;
+    const potentialLeads = LEAD_TYPES.reduce((s,t)=>s+(inquiryTypeBreakdown[t]||0),0);
+    const pendingLeads = vc.filter(c=>c.doctorReplied!==true).length;
     return {
       ...v, inquiryTypeBreakdown,
       hotLeads: inquiryTypeBreakdown['pedir_cita_agendar']||0,
-      potentialLeads: LEAD_TYPES.reduce((s,t)=>s+(inquiryTypeBreakdown[t]||0),0),
+      potentialLeads, pendingLeads,
     };
   }).sort((a,b)=> new Date(b.publishedAt) - new Date(a.publishedAt));
 }
@@ -272,6 +274,7 @@ function renderPendingLeads(){
   }
   const rows = list.map(c => {
     const meta = TYPE_META[c.inquiryType] || TYPE_META.no_aplica;
+    const dateStr = c.video ? new Date(c.video.publishedAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' }) : '';
     return `
       <div class="comment-row pending-row">
         <div class="crow-top">
@@ -279,7 +282,7 @@ function renderPendingLeads(){
           <span class="tag" style="background:${meta.color}22;color:${meta.color}">${meta.label} · ${(c.confidence*100).toFixed(0)}%</span>
         </div>
         <div class="ctext">${escapeHtml(c.text)}</div>
-        <div class="cvideo">🎥 ${escapeHtml(c.video ? c.video.title : c.videoId)}</div>
+        <div class="cvideo">🎥 ${escapeHtml(c.video ? c.video.title : c.videoId)}${dateStr ? ' · 📅 ' + dateStr : ''}</div>
       </div>
     `;
   }).join('');
@@ -398,10 +401,11 @@ function renderTypeChart(){
 }
 
 function renderRanking(){
-  const top = [...STATE.videos].sort((a,b)=>b.potentialLeads - a.potentialLeads).slice(0,8).filter(v=>v.potentialLeads>0);
+  // Ordenado por leads SIN RESPONDER (no por el total) — es lo que hay que cazar primero.
+  const top = [...STATE.videos].sort((a,b)=>b.pendingLeads - a.pendingLeads).slice(0,8).filter(v=>v.pendingLeads>0);
   const el = document.getElementById('ranking');
   if (top.length === 0) {
-    el.innerHTML = '<div class="empty-state">Todavía no hay leads potenciales 🙌</div>';
+    el.innerHTML = '<div class="empty-state">Todavía no hay leads pendientes 🙌</div>';
     return;
   }
   el.innerHTML = top.map((v,i) => {
@@ -411,9 +415,9 @@ function renderRanking(){
       <div class="rank">${i+1}</div>
       <div class="rinfo">
         <div class="rtitle">${escapeHtml(v.title)}</div>
-        <div class="rsub">📅 ${dateStr} · ${v.totalComments} comentarios · ${v.hotLeads} piden cita</div>
+        <div class="rsub">📅 ${dateStr} · ${v.potentialLeads} leads totales · ${v.hotLeads} piden cita</div>
       </div>
-      <div class="rvalue">🌟 ${v.potentialLeads}</div>
+      <div class="rvalue">🚨 ${v.pendingLeads}</div>
     </div>
   `;
   }).join('');
