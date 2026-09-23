@@ -100,6 +100,23 @@ canvas{max-height:280px}
 .contact-cta a.contact-link:hover{border-color:var(--hot);color:var(--hot)}
 .contact-cta a.contact-link.primary{background:var(--hot);color:#fff;border-color:var(--hot)}
 .contact-cta a.contact-link.primary:hover{opacity:.88;color:#fff}
+.print-note{display:none}
+@media print{
+  :root{
+    --bg:#ffffff;--panel:#ffffff;--panel-2:#f4f5f9;--border:#d8dbe8;
+    --text:#171b2e;--muted:#5a5f7d;--accent:#5a3fd6;--accent-2:#0e8f85;
+    --hot:#c9324a;--warn:#a5650f;--good:#1f9d5c;
+  }
+  @page{size:A4;margin:14mm}
+  body{background:#fff}
+  .banner{background:#fbe4e7;color:#7a1626;border-color:var(--hot)}
+  .contact-cta{background:#f4f5f9}
+  canvas{max-height:220px}
+  .pending-select,#pendingFilterBar,#pendingLeadsList,
+  #typeFilterBar,.sort-bar,#videosList{display:none !important}
+  .print-note{display:block !important;color:var(--muted);font-size:.85em;font-style:italic}
+  .panel{page-break-inside:avoid}
+}
 </style>
 
 <div class="container">
@@ -159,10 +176,12 @@ canvas{max-height:280px}
     <select class="pending-select" id="pendingVideoSelect" onchange="setPendingVideoFilter(this.value)"></select>
     <div class="filter-bar" id="pendingFilterBar"></div>
     <div id="pendingLeadsList"></div>
+    <div class="print-note">Listado completo y filtrable de los 276 leads pendientes disponible en la versión interactiva: devai82.github.io/youtube-clinic-classifier/dashboard.html</div>
   </div>
 
   <div class="panel">
     <h2>🎥 Videos Analizados</h2>
+    <div class="print-note">Detalle vídeo a vídeo, con comentarios completos, disponible en la versión interactiva (enlace arriba).</div>
     <div class="filter-bar" id="typeFilterBar"></div>
     <div class="sort-bar">
       Ordenar por:
