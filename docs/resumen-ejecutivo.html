@@ -30,6 +30,8 @@
   h2{font-size:1.08em;margin:0 0 5px}
   p.sub{color:var(--ink-soft);font-size:.88em;margin:0 0 6px}
 
+  .method-svg{width:100%;max-height:150px;color:var(--ink);margin:4px 0}
+
   .flow{display:flex;align-items:center;flex-wrap:wrap;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:.74em;margin:8px 0}
   .flow .pill{background:var(--paper-2);border:1px solid var(--ink-soft);border-radius:999px;padding:6px 12px;font-weight:600;white-space:nowrap}
   .flow .pill.hi{background:var(--coral-soft);border-color:var(--coral);color:var(--coral)}
@@ -89,13 +91,47 @@
   <section>
     <h2>Metodología: dos filtrados, no una palabra clave</h2>
     <p class="sub">Un filtro de "pedir cita" se queda corto: pierde a quien pide ayuda sin decir esa palabra, y confunde comentarios sobre otros vídeos. Usamos dos pasadas.</p>
-    <div class="flow">
-      <span class="pill">2.915 comentarios</span><span class="arrow">→</span>
-      <span class="pill">JEV · 2 preguntas (¿es clínico? ¿qué tipo?)</span><span class="arrow">→</span>
-      <span class="pill hi">795 clínicos</span><span class="arrow">→</span>
-      <span class="pill teal">Claude · revisión semántica</span><span class="arrow">→</span>
-      <span class="pill hi">290 leads verificados</span>
-    </div>
+    <svg class="method-svg" viewBox="0 0 1000 260" role="img" aria-label="Diagrama del pipeline: el texto del comentario y dos preguntas estructuradas entran a JEV, que clasifica 2.915 comentarios en 795 marcados como clínicos; Claude revisa esos 795 con comprensión semántica y produce 290 leads verificados.">
+      <defs>
+        <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <rect x="10" y="14" width="180" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".75"/>
+        <text x="100" y="35" text-anchor="middle">Texto del comentario</text>
+        <line x1="190" y1="31" x2="216" y2="63" stroke="currentColor" stroke-width="1.3" marker-end="url(#arrow2)" opacity=".75"/>
+        <rect x="10" y="64" width="180" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".75"/>
+        <text x="100" y="85" text-anchor="middle">P1 · ¿Es clínica?</text>
+        <line x1="190" y1="81" x2="220" y2="81" stroke="currentColor" stroke-width="1.3" marker-end="url(#arrow2)" opacity=".75"/>
+        <rect x="10" y="114" width="180" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".75"/>
+        <text x="100" y="135" text-anchor="middle">P2 · ¿Qué tipo?</text>
+        <line x1="190" y1="131" x2="216" y2="99" stroke="currentColor" stroke-width="1.3" marker-end="url(#arrow2)" opacity=".75"/>
+      </g>
+      <rect x="220" y="10" width="140" height="142" rx="14" fill="var(--paper-2)" stroke="var(--ink-soft)" stroke-width="2"/>
+      <text x="290" y="72" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="22">JEV</text>
+      <text x="290" y="92" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">OpenRouter</text>
+      <line x1="360" y1="81" x2="424" y2="81" stroke="currentColor" stroke-width="1.6" marker-end="url(#arrow2)"/>
+      <text x="392" y="70" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">clasifica</text>
+      <rect x="430" y="51" width="150" height="60" rx="10" fill="var(--paper-2)" stroke="var(--ink-soft)" stroke-width="2"/>
+      <text x="505" y="76" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="18">795</text>
+      <text x="505" y="94" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">clínicos</text>
+      <line x1="580" y1="81" x2="644" y2="81" stroke="currentColor" stroke-width="1.6" marker-end="url(#arrow2)"/>
+      <text x="612" y="70" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">revisa</text>
+      <rect x="650" y="10" width="150" height="142" rx="14" fill="var(--paper-2)" stroke="var(--teal)" stroke-width="2.5"/>
+      <text x="725" y="60" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="22" fill="var(--teal)">Claude</text>
+      <text x="725" y="80" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">sin API extra</text>
+      <g font-family="IBM Plex Sans, sans-serif" font-size="10.5" fill="var(--ink-soft)">
+        <text x="665" y="102">— corrige errores</text>
+        <text x="665" y="118">— crea categorías</text>
+        <text x="665" y="134">— cruza respuestas</text>
+      </g>
+      <line x1="800" y1="81" x2="844" y2="81" stroke="var(--teal)" stroke-width="1.8" marker-end="url(#arrow2)"/>
+      <text x="822" y="70" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">verifica</text>
+      <rect x="850" y="46" width="140" height="70" rx="10" fill="var(--coral-soft)" stroke="var(--coral)" stroke-width="2.5"/>
+      <text x="920" y="80" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="24" fill="var(--coral)">290</text>
+      <text x="920" y="102" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--coral)">leads verificados</text>
+    </svg>
   </section>
 
   <section>
