@@ -80,6 +80,14 @@ header .subtitle{color:var(--muted);font-size:.85em;margin-top:2px}
 .ranking-item .rsub{font-size:.72em;color:var(--muted)}
 .ranking-item .rvalue{font-weight:800;color:var(--hot);font-size:1em;flex-shrink:0}
 canvas{max-height:280px}
+.year-table{width:100%;border-collapse:collapse;font-size:.82em;margin-top:12px}
+.year-table th{text-align:left;color:var(--muted);font-weight:600;font-size:.8em;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1px solid var(--border)}
+.year-table td{padding:8px;border-bottom:1px solid var(--border)}
+.year-table td.num,.year-table th.num{text-align:right;font-variant-numeric:tabular-nums}
+.year-table tr:last-child td{border-bottom:none}
+.year-table tr.total-row td{font-weight:700;border-top:2px solid var(--border);border-bottom:none;color:var(--text)}
+.year-table .resp-good{color:var(--good)}
+.year-table .resp-bad{color:var(--hot)}
 </style>
 
 <div class="container">
@@ -121,6 +129,8 @@ canvas{max-height:280px}
         <div class="row"><div class="dot" style="background:#ffd76b"></div><div class="name"><b>Lead potencial</b> — expone su caso y pide orientación, nunca ha sido paciente</div></div>
         <div class="row"><div class="dot" style="background:#c77dff"></div><div class="name"><b>Seguimiento/Recontacto</b> — paciente activo con dudas o problemas de tratamiento</div></div>
       </div>
+      <h2 style="margin-top:22px">📅 Resumen por año</h2>
+      <div id="yearlyTable"></div>
     </div>
   </div>
 
@@ -394,16 +404,75 @@ function renderRanking(){
     el.innerHTML = '<div class="empty-state">Todavía no hay leads potenciales 🙌</div>';
     return;
   }
-  el.innerHTML = top.map((v,i) => `
+  el.innerHTML = top.map((v,i) => {
+    const dateStr = new Date(v.publishedAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
+    return `
     <div class="ranking-item">
       <div class="rank">${i+1}</div>
       <div class="rinfo">
         <div class="rtitle">${escapeHtml(v.title)}</div>
-        <div class="rsub">${v.totalComments} comentarios · ${v.hotLeads} piden cita</div>
+        <div class="rsub">📅 ${dateStr} · ${v.totalComments} comentarios · ${v.hotLeads} piden cita</div>
       </div>
       <div class="rvalue">🌟 ${v.potentialLeads}</div>
     </div>
-  `).join('');
+  `;
+  }).join('');
+}
+
+function renderYearlyTable(){
+  const byYear = {};
+  STATE.videos.forEach(v => {
+    const year = new Date(v.publishedAt).getFullYear();
+    if (!byYear[year]) byYear[year] = { videos: 0, comments: 0, views: 0, leads: 0, leadsReplied: 0 };
+    byYear[year].videos += 1;
+    byYear[year].comments += v.totalComments || 0;
+    byYear[year].views += v.viewCount || 0;
+    byYear[year].leads += v.potentialLeads || 0;
+  });
+  RAW.comments.forEach(c => {
+    if (!LEAD_TYPES.includes(c.inquiryType)) return;
+    const v = STATE.videos.find(x=>x.id===c.videoId);
+    if (!v) return;
+    const year = new Date(v.publishedAt).getFullYear();
+    if (byYear[year] && c.doctorReplied === true) byYear[year].leadsReplied += 1;
+  });
+  const years = Object.keys(byYear).sort((a,b)=>b-a);
+  const totals = { videos:0, comments:0, views:0, leads:0, leadsReplied:0 };
+  years.forEach(y => { Object.keys(totals).forEach(k => totals[k] += byYear[y][k]); });
+
+  const row = (label, d, isTotal) => {
+    const rate = d.leads > 0 ? (d.leadsReplied / d.leads) * 100 : 0;
+    const rateClass = d.leads === 0 ? '' : (rate >= 20 ? 'resp-good' : 'resp-bad');
+    const avgComments = d.videos > 0 ? Math.round(d.comments / d.videos) : 0;
+    return `
+      <tr${isTotal ? ' class="total-row"' : ''}>
+        <td>${label}</td>
+        <td class="num">${d.videos}</td>
+        <td class="num">${d.comments.toLocaleString()}</td>
+        <td class="num">${avgComments}</td>
+        <td class="num">${d.views.toLocaleString()}</td>
+        <td class="num">${d.leads}</td>
+        <td class="num ${rateClass}">${rate.toFixed(0)}%</td>
+      </tr>`;
+  };
+
+  const rows = years.map(y => row(y, byYear[y], false)).join('') + row('Total', totals, true);
+  document.getElementById('yearlyTable').innerHTML = `
+    <table class="year-table">
+      <thead>
+        <tr>
+          <th>Año</th>
+          <th class="num">Vídeos</th>
+          <th class="num">Comentarios</th>
+          <th class="num">Media/vídeo</th>
+          <th class="num">Vistas</th>
+          <th class="num">Leads</th>
+          <th class="num">% Resp.</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
 }
 
 function setTypeFilter(type){
@@ -574,6 +643,7 @@ async function init(){
   renderLeadsChart();
   renderTypeChart();
   renderRanking();
+  renderYearlyTable();
   renderPendingFilterBar();
   renderPendingLeads();
   renderTypeFilterBar();
