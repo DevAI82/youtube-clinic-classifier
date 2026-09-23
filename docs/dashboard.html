@@ -91,6 +91,14 @@ canvas{max-height:280px}
 .year-table tr.total-row td{font-weight:700;border-top:2px solid var(--border);border-bottom:none;color:var(--text)}
 .year-table .resp-good{color:var(--good)}
 .year-table .resp-bad{color:var(--hot)}
+.contact-cta{text-align:center;padding:32px 24px;background:linear-gradient(135deg,#2a1620,#171b2e);border:1px solid var(--hot);border-radius:16px;margin-top:24px}
+.contact-cta h2{font-size:1.2em;margin-bottom:6px}
+.contact-cta p{color:var(--muted);font-size:.88em;margin-bottom:18px}
+.contact-cta .rows{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.contact-cta a.contact-link{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.88em;padding:12px 20px;border-radius:999px;text-decoration:none;border:1px solid var(--border);color:var(--text);transition:.15s}
+.contact-cta a.contact-link:hover{border-color:var(--hot);color:var(--hot)}
+.contact-cta a.contact-link.primary{background:var(--hot);color:#fff;border-color:var(--hot)}
+.contact-cta a.contact-link.primary:hover{opacity:.88;color:#fff}
 </style>
 
 <div class="container">
@@ -164,6 +172,15 @@ canvas{max-height:280px}
       </select>
     </div>
     <div id="videosList"></div>
+  </div>
+
+  <div class="contact-cta">
+    <h2>¿Hablamos de automatizar esto?</h2>
+    <p>Altera — consultoría de IA. Te lo explicamos en 15 minutos y vemos si encaja.</p>
+    <div class="rows">
+      <a class="contact-link primary" href="https://wa.me/34624939023" target="_blank" rel="noopener">📱 WhatsApp: +34 624 93 90 23</a>
+      <a class="contact-link" href="mailto:contacto@altera-es.com">✉️ contacto@altera-es.com</a>
+    </div>
   </div>
 </div>
 
