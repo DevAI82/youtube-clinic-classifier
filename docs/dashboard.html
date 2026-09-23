@@ -28,6 +28,9 @@ header .subtitle{color:var(--muted);font-size:.85em;margin-top:2px}
 .stat-card.warn{--accent-color:var(--warn)}
 .grid-2{display:grid;grid-template-columns:1.1fr 1.6fr;gap:20px;margin-bottom:24px}
 @media(max-width:1000px){.grid-2{grid-template-columns:1fr}}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:24px}
+@media(max-width:1100px){.grid-3{grid-template-columns:1fr}}
+.pending-select{background:var(--panel-2);color:var(--text);border:1px solid var(--border);padding:8px 12px;border-radius:8px;font-size:.85em;margin-bottom:14px;width:100%;max-width:480px}
 .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:24px}
 .panel h2{font-size:1.05em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
 .type-legend{display:flex;flex-direction:column;gap:10px;margin-top:16px}
@@ -104,16 +107,21 @@ canvas{max-height:280px}
 
   <div class="stats-grid" id="stats"></div>
 
-  <div class="grid-2">
+  <div class="grid-3">
     <div class="panel">
-      <h2>🌟 Desglose de Leads Potenciales</h2>
-      <canvas id="leadsChart"></canvas>
-      <div class="type-legend" id="leadsLegend"></div>
+      <h2>1️⃣ ¿Es consulta clínica?</h2>
+      <canvas id="clinicChart"></canvas>
+      <div class="type-legend" id="clinicLegend"></div>
     </div>
     <div class="panel">
-      <h2>📊 Distribución por Tipo de Consulta (todos)</h2>
-      <canvas id="typeChart"></canvas>
-      <div class="type-legend" id="typeLegend"></div>
+      <h2>2️⃣ Tipo de consulta clínica</h2>
+      <canvas id="clinicTypeChart"></canvas>
+      <div class="type-legend" id="clinicTypeLegend"></div>
+    </div>
+    <div class="panel">
+      <h2>3️⃣ Desglose de los Leads</h2>
+      <canvas id="leadsChart"></canvas>
+      <div class="type-legend" id="leadsLegend"></div>
     </div>
   </div>
 
@@ -136,6 +144,7 @@ canvas{max-height:280px}
 
   <div class="panel" id="pendingLeadsPanel">
     <h2>🚨 Leads Pendientes de Respuesta</h2>
+    <select class="pending-select" id="pendingVideoSelect" onchange="setPendingVideoFilter(this.value)"></select>
     <div class="filter-bar" id="pendingFilterBar"></div>
     <div id="pendingLeadsList"></div>
   </div>
@@ -233,7 +242,7 @@ function buildVideos(){
   }).sort((a,b)=> new Date(b.publishedAt) - new Date(a.publishedAt));
 }
 
-let STATE = { stats: null, videos: [], activeTypeFilter: 'all', expandedVideo: null, expandedTypeFilter: 'all', typeChart: null, leadsChart: null, pendingFilter: 'all' };
+let STATE = { stats: null, videos: [], activeTypeFilter: 'all', expandedVideo: null, expandedTypeFilter: 'all', clinicChart: null, clinicTypeChart: null, leadsChart: null, pendingFilter: 'all', pendingVideoFilter: 'all' };
 
 function getPendingLeads(){
   const videoById = {};
@@ -248,6 +257,27 @@ function setPendingFilter(type){
   STATE.pendingFilter = type;
   renderPendingFilterBar();
   renderPendingLeads();
+}
+
+function setPendingVideoFilter(videoId){
+  STATE.pendingVideoFilter = videoId;
+  renderPendingLeads();
+}
+
+function renderPendingVideoSelect(){
+  const all = getPendingLeads();
+  const byVideo = {};
+  all.forEach(c => { if (c.video) byVideo[c.video.id] = { video: c.video, count: (byVideo[c.video.id]?.count||0)+1 }; });
+  const options = Object.values(byVideo).sort((a,b) => new Date(b.video.publishedAt) - new Date(a.video.publishedAt));
+  const sel = document.getElementById('pendingVideoSelect');
+  const current = STATE.pendingVideoFilter;
+  sel.innerHTML = ['<option value="all">🎥 Todos los vídeos</option>'].concat(
+    options.map(({video, count}) => {
+      const dateStr = new Date(video.publishedAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
+      return `<option value="${video.id}">📅 ${dateStr} — ${escapeHtml(video.title)} (${count})</option>`;
+    })
+  ).join('');
+  sel.value = current;
 }
 
 function renderPendingFilterBar(){
@@ -267,6 +297,7 @@ function renderPendingFilterBar(){
 function renderPendingLeads(){
   let list = getPendingLeads();
   if (STATE.pendingFilter !== 'all') list = list.filter(c => c.inquiryType === STATE.pendingFilter);
+  if (STATE.pendingVideoFilter !== 'all') list = list.filter(c => c.videoId === STATE.pendingVideoFilter);
   const el = document.getElementById('pendingLeadsList');
   if (list.length === 0) {
     el.innerHTML = '<div class="empty-state">No hay leads pendientes de este tipo 🙌</div>';
@@ -364,14 +395,53 @@ function renderLeadsChart(){
   `).join('');
 }
 
-function renderTypeChart(){
+function renderClinicChart(){
+  const s = STATE.stats;
+  const clinic = s.clinicInquiries;
+  const notClinic = s.totalComments - clinic;
+  const labels = ['🏥 Consulta clínica', '💬 No aplica'];
+  const data = [clinic, notClinic];
+  const colors = ['#4fd18f', '#3a4066'];
+  const ctx = document.getElementById('clinicChart').getContext('2d');
+  if (STATE.clinicChart) STATE.clinicChart.destroy();
+  STATE.clinicChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+    plugins: [ChartDataLabels],
+    options: {
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          color: '#0f1220', font: { weight: 800, size: 13 },
+          formatter: (value, ctx) => {
+            const t = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0) || 1;
+            return value > 0 ? Math.round((value/t)*100) + '%' : '';
+          },
+        },
+      },
+      cutout: '65%',
+    },
+  });
+  const total = data.reduce((a,b)=>a+b,0) || 1;
+  document.getElementById('clinicLegend').innerHTML = labels.map((l,i) => `
+    <div class="row">
+      <div class="dot" style="background:${colors[i]}"></div>
+      <div class="name">${l}</div>
+      <div class="count">${data[i].toLocaleString()} (${((data[i]/total)*100).toFixed(0)}%)</div>
+    </div>
+  `).join('');
+}
+
+function renderClinicTypeChart(){
   const breakdown = STATE.stats.inquiryTypeBreakdown;
-  const labels = TYPE_ORDER.map(t => TYPE_META[t].label);
-  const data = TYPE_ORDER.map(t => breakdown[t] || 0);
-  const colors = TYPE_ORDER.map(t => TYPE_META[t].color);
-  const ctx = document.getElementById('typeChart').getContext('2d');
-  if (STATE.typeChart) STATE.typeChart.destroy();
-  STATE.typeChart = new Chart(ctx, {
+  const leadsTotal = LEAD_TYPES.reduce((s,t)=>s+(breakdown[t]||0),0);
+  const keys = ['__leads__', ...OTHER_CLINIC_TYPES];
+  const labels = ['🌟 Leads (agrupado)', ...OTHER_CLINIC_TYPES.map(t => TYPE_META[t].label)];
+  const data = [leadsTotal, ...OTHER_CLINIC_TYPES.map(t => breakdown[t] || 0)];
+  const colors = ['#ff5d73', ...OTHER_CLINIC_TYPES.map(t => TYPE_META[t].color)];
+  const ctx = document.getElementById('clinicTypeChart').getContext('2d');
+  if (STATE.clinicTypeChart) STATE.clinicTypeChart.destroy();
+  STATE.clinicTypeChart = new Chart(ctx, {
     type: 'doughnut',
     data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
     plugins: [ChartDataLabels],
@@ -391,7 +461,7 @@ function renderTypeChart(){
     },
   });
   const total = data.reduce((a,b)=>a+b,0) || 1;
-  document.getElementById('typeLegend').innerHTML = TYPE_ORDER.map((t,i) => `
+  document.getElementById('clinicTypeLegend').innerHTML = keys.map((k,i) => `
     <div class="row">
       <div class="dot" style="background:${colors[i]}"></div>
       <div class="name">${labels[i]}</div>
@@ -644,10 +714,12 @@ async function init(){
   STATE.stats = buildStatistics();
   STATE.videos = buildVideos();
   renderStats();
+  renderClinicChart();
+  renderClinicTypeChart();
   renderLeadsChart();
-  renderTypeChart();
   renderRanking();
   renderYearlyTable();
+  renderPendingVideoSelect();
   renderPendingFilterBar();
   renderPendingLeads();
   renderTypeFilterBar();
