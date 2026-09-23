@@ -1,0 +1,423 @@
+<title>Radar de Leads</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ink:#0f1b1e; --ink-soft:#3b4d51; --paper:#eef2f1; --paper-2:#e2e8e6; --line:rgba(15,27,30,.14);
+    --coral:#e8435a; --coral-soft:#fde3e6; --teal:#0e7c86; --teal-soft:#dcf0ef; --amber:#b9711a; --amber-soft:#fbe9d3;
+    --shadow: 0 1px 2px rgba(15,27,30,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#eef2f1; --ink-soft:#aab8ba; --paper:#0b1416; --paper-2:#111c1f; --line:rgba(238,242,241,.14);
+      --coral:#ff6b7e; --coral-soft:#3a1720; --teal:#3fc2ca; --teal-soft:#0f2a2b; --amber:#f0a94e; --amber-soft:#2b2013;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#eef2f1; --ink-soft:#aab8ba; --paper:#0b1416; --paper-2:#111c1f; --line:rgba(238,242,241,.14);
+    --coral:#ff6b7e; --coral-soft:#3a1720; --teal:#3fc2ca; --teal-soft:#0f2a2b; --amber:#f0a94e; --amber-soft:#2b2013;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;line-height:1.55;padding:0 16px;padding-block:0}
+  .wrap{max-width:760px;margin:0 auto}
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:.75em;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);font-weight:600}
+
+  header.hero{padding:56px 0 40px;border-bottom:1px solid var(--line)}
+  header.hero .eyebrow{margin-bottom:14px;display:block}
+  header.hero h1{font-size:clamp(1.9em,5vw,2.6em);margin:0 0 10px;line-height:1.08}
+  header.hero p.lede{color:var(--ink-soft);font-size:1.05em;max-width:56ch;margin:0}
+
+  .headline-stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:32px}
+  .headline-stats .cell{background:var(--paper);padding:22px 20px}
+  .headline-stats .num{font-family:'Fraunces',serif;font-weight:700;font-size:2.6em;line-height:1;font-variant-numeric:tabular-nums}
+  .headline-stats .num.coral{color:var(--coral)}
+  .headline-stats .num.amber{color:var(--amber)}
+  .headline-stats .cap{color:var(--ink-soft);font-size:.85em;margin-top:6px}
+  @media(max-width:520px){.headline-stats{grid-template-columns:1fr}}
+
+  section{padding:44px 0;border-bottom:1px solid var(--line)}
+  section:last-of-type{border-bottom:none}
+  section h2{font-size:1.5em;margin:0 0 6px}
+  section .sub{color:var(--ink-soft);margin:0 0 24px;max-width:60ch}
+
+  .rate-bar{height:14px;border-radius:999px;background:var(--paper-2);overflow:hidden;margin:20px 0 10px;border:1px solid var(--line)}
+  .rate-bar .fill{height:100%;background:linear-gradient(90deg,var(--coral),var(--amber));border-radius:999px}
+  .rate-caption{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:.8em;color:var(--ink-soft)}
+
+  .diagram-scroll{overflow-x:auto;margin:20px 0 28px}
+  .diagram-scroll svg{min-width:640px;width:100%;height:auto;display:block;color:var(--ink)}
+  .diagram-scroll figcaption{font-size:.78em;color:var(--ink-soft);margin-top:8px;text-align:center}
+
+  .method-diagram{display:grid;grid-template-columns:1fr 44px 1fr;align-items:stretch;gap:0;margin-top:8px}
+  @media(max-width:720px){.method-diagram{grid-template-columns:1fr}}
+  .method-phase{border:1px solid var(--line);border-radius:14px;padding:22px 22px 20px;background:var(--paper-2);display:flex;flex-direction:column}
+  .method-phase.math{border-top:3px solid var(--ink-soft)}
+  .method-phase.semantic{border-top:3px solid var(--teal)}
+  .phase-tag{font-size:.7em;letter-spacing:.1em;color:var(--ink-soft);margin-bottom:8px}
+  .method-phase h3{font-size:1.15em;margin:0 0 10px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .method-phase h3 .phase-via{font-family:'IBM Plex Sans',sans-serif;font-weight:400;font-size:.6em;color:var(--ink-soft)}
+  .phase-desc{font-size:.88em;color:var(--ink-soft);margin:0 0 12px}
+  .method-items{margin:0 0 16px;padding-left:1.15em;display:flex;flex-direction:column;gap:10px}
+  .method-items li{font-size:.86em;color:var(--ink-soft)}
+  .method-items li b{color:var(--ink);font-weight:600}
+  .method-items li i{color:var(--ink);font-style:normal;font-weight:600}
+  .phase-out{margin-top:auto;font-family:'IBM Plex Mono',monospace;font-size:.8em;font-weight:600;color:var(--teal);padding-top:12px;border-top:1px dashed var(--line)}
+  .method-phase.math .phase-out{color:var(--ink)}
+  .method-arrow{display:flex;align-items:center;justify-content:center;font-size:1.6em;color:var(--ink-soft)}
+  @media(max-width:720px){.method-arrow{transform:rotate(90deg);padding:6px 0}}
+
+  .lead-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:8px}
+  .lead-card{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:var(--paper-2)}
+  .lead-card .tag{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:.72em;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:4px 10px;border-radius:999px;margin-bottom:10px}
+  .tag.hot{background:var(--coral-soft);color:var(--coral)}
+  .tag.warm{background:var(--amber-soft);color:var(--amber)}
+  .tag.follow{background:var(--teal-soft);color:var(--teal)}
+  .lead-card .count{font-family:'Fraunces',serif;font-weight:700;font-size:1.4em;float:right}
+  .lead-card p.desc{margin:0 0 12px;color:var(--ink-soft);font-size:.92em}
+  .quote{border-left:3px solid var(--line);padding-left:12px;margin:10px 0 0;font-size:.9em}
+  .quote p{margin:0 0 4px;font-style:italic}
+  .quote .who{font-family:'IBM Plex Mono',monospace;font-size:.78em;color:var(--ink-soft)}
+
+  .case-block{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:24px;margin-top:8px}
+  .case-block ul{margin:12px 0 0;padding-left:1.1em}
+  .case-block li{margin-bottom:10px;color:var(--ink-soft)}
+  .case-block li b{color:var(--ink);font-weight:600}
+
+  .evidence details{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;background:var(--paper-2);overflow:hidden}
+  .evidence summary{list-style:none;cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:12px;font-weight:600}
+  .evidence summary::-webkit-details-marker{display:none}
+  .evidence summary .arrow{margin-left:auto;transition:transform .15s;color:var(--ink-soft);font-size:.9em}
+  .evidence details[open] summary .arrow{transform:rotate(90deg)}
+  .evidence summary .tag{margin:0}
+  .evidence summary .n{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--ink-soft);font-size:.85em}
+  .evidence-list{padding:4px 20px 18px;display:flex;flex-direction:column;gap:0}
+  .ev-item{padding:14px 0;border-top:1px solid var(--line);font-size:.9em}
+  .ev-item:first-child{border-top:none}
+  .ev-item .ev-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .ev-item .who{font-family:'IBM Plex Mono',monospace;font-size:.8em;color:var(--ink-soft)}
+  .ev-item .video{font-size:.78em;color:var(--ink-soft);font-style:italic}
+  .ev-item .replied-chip{font-family:'IBM Plex Mono',monospace;font-size:.68em;font-weight:600;background:var(--teal-soft);color:var(--teal);padding:2px 8px;border-radius:999px}
+  .ev-item p{margin:0;color:var(--ink)}
+  .evidence-toggle-all{background:none;border:1px solid var(--line);color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:.78em;font-weight:600;padding:8px 14px;border-radius:999px;cursor:pointer;margin-bottom:16px}
+  .evidence-toggle-all:hover{border-color:var(--teal);color:var(--teal)}
+
+  footer.cta{padding:48px 0 72px;text-align:center}
+  footer.cta h2{font-size:1.6em}
+  footer.cta p{color:var(--ink-soft);max-width:52ch;margin:0 auto 22px}
+  footer.cta .btn{display:inline-block;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.85em;letter-spacing:.03em;background:var(--ink);color:var(--paper);padding:14px 28px;border-radius:999px;text-decoration:none;transition:.15s}
+  footer.cta .btn:hover{opacity:.85}
+  footer.cta .note{margin-top:16px;font-size:.78em;color:var(--ink-soft)}
+</style>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="eyebrow">Escuela de Alopecia · Análisis de comentarios</span>
+    <h1>Tu canal esconde 290 pacientes que ya te están pidiendo ayuda. Solo le respondiste a 14.</h1>
+    <p class="lede">Analizamos los 2.915 comentarios de los 68 vídeos de @EscueladeAlopecia. Esto es lo que encontramos — y lo que se sigue perdiendo cada semana.</p>
+
+    <div class="headline-stats">
+      <div class="cell">
+        <div class="num coral">290</div>
+        <div class="cap">leads potenciales detectados</div>
+      </div>
+      <div class="cell">
+        <div class="num amber">276</div>
+        <div class="cap">siguen sin ninguna respuesta</div>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <h2>El problema no es el contenido. Es la gestión.</h2>
+    <p class="sub">Tu canal genera conversación real — gente exponiendo su caso, pidiendo cita, preguntando por tratamiento. Pero casi nada de eso se contesta.</p>
+    <div class="rate-bar"><div class="fill" style="width:4.8%"></div></div>
+    <div class="rate-caption">
+      <span>14 leads respondidos</span>
+      <span class="mono" style="color:var(--coral);font-weight:600">4,8% de tasa de respuesta en leads</span>
+      <span>290 leads totales</span>
+    </div>
+    <p class="sub" style="margin-top:16px;margin-bottom:0">Y si miramos el canal entero, no solo los leads: de <b style="color:var(--ink)">2.915 comentarios</b>, solo <b style="color:var(--ink)">77 tienen respuesta tuya</b> — un <b class="mono" style="color:var(--coral)">2,6%</b> de tasa de respuesta global.</p>
+  </section>
+
+  <section>
+    <h2>Metodología</h2>
+    <p class="sub">No es una palabra clave buscando "pedir cita". Son dos filtrados distintos: uno matemático y rápido, otro semántico y contextual.</p>
+
+    <div class="diagram-scroll">
+      <figure style="margin:0">
+        <svg viewBox="0 0 1000 260" role="img" aria-label="Diagrama del pipeline: el texto del comentario y tres preguntas estructuradas entran a JEV, que clasifica 2.915 comentarios en 795 marcados como clínicos; Claude revisa esos 795 con comprensión semántica (corrige errores, crea categorías nuevas, cruza respuestas reales) y produce 290 leads verificados.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <!-- 3 inputs into JEV -->
+          <g font-family="IBM Plex Mono, monospace" font-size="11">
+            <rect x="10" y="14" width="180" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".75"/>
+            <text x="100" y="35" text-anchor="middle">Texto del comentario</text>
+            <line x1="190" y1="31" x2="216" y2="63" stroke="currentColor" stroke-width="1.3" marker-end="url(#arrow)" opacity=".75"/>
+
+            <rect x="10" y="64" width="180" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".75"/>
+            <text x="100" y="85" text-anchor="middle">P1 · ¿Es clínica?</text>
+            <line x1="190" y1="81" x2="220" y2="81" stroke="currentColor" stroke-width="1.3" marker-end="url(#arrow)" opacity=".75"/>
+
+            <rect x="10" y="114" width="180" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".75"/>
+            <text x="100" y="135" text-anchor="middle">P2 · ¿Qué tipo?</text>
+            <line x1="190" y1="131" x2="216" y2="99" stroke="currentColor" stroke-width="1.3" marker-end="url(#arrow)" opacity=".75"/>
+          </g>
+
+          <!-- JEV node -->
+          <rect x="220" y="10" width="140" height="142" rx="14" fill="var(--paper-2)" stroke="var(--ink-soft)" stroke-width="2"/>
+          <text x="290" y="72" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="22">JEV</text>
+          <text x="290" y="92" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">OpenRouter</text>
+
+          <!-- JEV -> 266 -->
+          <line x1="360" y1="81" x2="424" y2="81" stroke="currentColor" stroke-width="1.6" marker-end="url(#arrow)"/>
+          <text x="392" y="70" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">clasifica</text>
+
+          <!-- 795 clínicos -->
+          <rect x="430" y="51" width="150" height="60" rx="10" fill="var(--paper-2)" stroke="var(--ink-soft)" stroke-width="2"/>
+          <text x="505" y="76" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="18">795</text>
+          <text x="505" y="94" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">clínicos</text>
+
+          <!-- 266 -> Claude -->
+          <line x1="580" y1="81" x2="644" y2="81" stroke="currentColor" stroke-width="1.6" marker-end="url(#arrow)"/>
+          <text x="612" y="70" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">revisa</text>
+
+          <!-- Claude node -->
+          <rect x="650" y="10" width="150" height="142" rx="14" fill="var(--paper-2)" stroke="var(--teal)" stroke-width="2.5"/>
+          <text x="725" y="60" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="22" fill="var(--teal)">Claude</text>
+          <text x="725" y="80" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">sin API extra</text>
+          <g font-family="IBM Plex Sans, sans-serif" font-size="10.5" fill="var(--ink-soft)">
+            <text x="665" y="102">— corrige errores</text>
+            <text x="665" y="118">— crea categorías</text>
+            <text x="665" y="134">— cruza respuestas</text>
+          </g>
+
+          <!-- Claude -> 37 -->
+          <line x1="800" y1="81" x2="844" y2="81" stroke="var(--teal)" stroke-width="1.8" marker-end="url(#arrow)"/>
+          <text x="822" y="70" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-soft)">verifica</text>
+
+          <!-- 290 leads -->
+          <rect x="850" y="46" width="140" height="70" rx="10" fill="var(--coral-soft)" stroke="var(--coral)" stroke-width="2.5"/>
+          <text x="920" y="80" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="24" fill="var(--coral)">290</text>
+          <text x="920" y="102" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--coral)">leads verificados</text>
+        </svg>
+        <figcaption>2.915 comentarios entran por la izquierda; 290 salen verificados como leads por la derecha, tras dos pasadas de filtrado.</figcaption>
+      </figure>
+    </div>
+
+    <div class="method-diagram">
+
+      <div class="method-phase math">
+        <div class="phase-tag mono">FASE 1 · FILTRADO MATEMÁTICO</div>
+        <h3>JEV <span class="phase-via">vía API de OpenRouter</span></h3>
+        <p class="phase-desc">Modelo de decisión estructurada. Barato y rápido — clasifica los 2.915 comentarios en minutos. Le dimos 3 preguntas encadenadas por cada comentario:</p>
+        <ol class="method-items">
+          <li><b>¿Es clínico?</b> — filtra agradecimientos, humor y peticiones de otros vídeos antes de nada</li>
+          <li><b>¿Caso personal o genérico?</b> — expone su propia situación, o es una pregunta que podría hacer cualquiera</li>
+          <li><b>Subtipo exacto</b> — dentro de ese bloque: pedir cita, lead potencial, seguimiento, medicación, injertos, dudas...</li>
+        </ol>
+        <div class="phase-out">→ 795 comentarios marcados como clínicos</div>
+      </div>
+
+      <div class="method-arrow">→</div>
+
+      <div class="method-phase semantic">
+        <div class="phase-tag mono">FASE 2 · FILTRADO SEMÁNTICO</div>
+        <h3>Claude <span class="phase-via">vía suscripción, sin API extra</span></h3>
+        <p class="phase-desc">Revisión con comprensión de contexto e intención real — lo que un filtro de reglas no puede hacer:</p>
+        <ol class="method-items">
+          <li><b>Corrige los errores de JEV</b> — descarta falsos positivos (sugerencias de vídeo mal marcadas como "pedir cita") y rescata falsos negativos (casos expuestos sin usar ninguna palabra clave)</li>
+          <li><b>Crea 2 categorías nuevas</b> por intención, no por texto: <i>Lead potencial</i> y <i>Seguimiento/Recontacto</i></li>
+          <li><b>Cruza cada lead</b> con el historial real de respuestas del canal y monta este dashboard</li>
+        </ol>
+        <div class="phase-out">→ 290 leads priorizados y verificados a mano</div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Tres tipos de oportunidad, no una bolsa genérica</h2>
+    <p class="sub">Priorizar a quién contactar primero es tan importante como encontrarlos.</p>
+    <div class="lead-grid">
+
+      <div class="lead-card">
+        <span class="tag hot">Pedir cita · acción hoy</span>
+        <span class="count">23</span>
+        <p class="desc">Piden cita de forma explícita. No saben cómo contactar. Son el contacto más urgente y el más fácil de convertir.</p>
+        <div class="quote">
+          <p>"Doctor estoy tomando Minoxidil... llevo ya 3 meses y no veo resultados... me gustaría pedir una cita con usted porque es el único doctor que confío la verdad"</p>
+          <div class="who">@AnaMunoz-vb9xg · sin responder</div>
+        </div>
+      </div>
+
+      <div class="lead-card">
+        <span class="tag warm">Lead potencial · nunca ha sido paciente</span>
+        <span class="count">88</span>
+        <p class="desc">Exponen su caso personal y piden orientación, sin usar la palabra "cita". Un filtro de palabras clave no los encuentra.</p>
+        <div class="quote">
+          <p>"He ido al médico de cabecera y a un dermatólogo de pago y ninguno accede a mandarme finasterida/dutasterida... ¿Qué puedo hacer?"</p>
+          <div class="who">@user-nd2vq6qw5i · sin responder</div>
+        </div>
+      </div>
+
+      <div class="lead-card">
+        <span class="tag follow">Seguimiento / recontacto · ya en tratamiento</span>
+        <span class="count">179</span>
+        <p class="desc">Pacientes activos (propios o de otra clínica) relatando resultados insuficientes o dudas. Oportunidad de retención, no de captación — y el grupo más grande con diferencia.</p>
+        <div class="quote">
+          <p>"Llevo 5 meses con dutasteride 0,5 y 5 mg de minoxidil, cuando arranqué a los 15 días tuve un shedding, se me cayó el pelo..."</p>
+          <div class="who">@ZonaDigital-wg3od · sin responder</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="evidence">
+    <h2>Una muestra real, no inventada</h2>
+    <p class="sub">15 de los 276 leads sin responder, tal cual los escribió cada persona. Los 276 completos, con filtro por tipo, están en el panel interactivo (enlace al final).</p>
+    <button class="evidence-toggle-all" id="toggleAllBtn" type="button">Desplegar los 3 grupos</button>
+    <div id="evidenceGroups"></div>
+  </section>
+
+  <section>
+    <h2>Por qué un filtro de palabras clave no basta</h2>
+    <div class="case-block">
+      <p>Probamos primero con reglas simples: "cuánto cuesta", "dónde consigo cita", "me gustaría empezar tratamiento". El resultado:</p>
+      <ul>
+        <li><b>Demasiado ruido.</b> Frases como "en mi caso, mi abuelo también..." disparan cualquier regla basada en "mi caso" — y tu audiencia narra su historia familiar constantemente.</li>
+        <li><b>Demasiado silencio.</b> Con reglas más estrictas, la mayoría de leads reales desaparecen: alguien que dice "M2 con 40 años, ¿me salvo?" no contiene ninguna palabra clave de cita, pero es exactamente el tipo de persona que debería recibir una respuesta.</li>
+        <li><b>Cero contexto de negocio.</b> Ninguna regla distingue a un paciente que ya está en tratamiento (oportunidad de seguimiento) de alguien que nunca ha pisado una consulta (oportunidad de captación) — y esa distinción cambia por completo qué mensaje enviarle.</li>
+      </ul>
+      <p style="margin-top:14px">Encontrar los 290 leads de arriba — y descartar los falsos positivos que JEV marcó por error — requirió comprensión real del contexto, no coincidencia de texto.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>La oferta completa: detectar + responder</h2>
+    <p class="sub">Este informe resuelve "quién". Falta la otra mitad — "quién escribe primero, por dónde, y cómo consigues su contacto" — y ahí es donde entra nuestra consultoría.</p>
+
+    <div class="diagram-scroll">
+      <figure style="margin:0">
+        <svg viewBox="0 0 900 260" role="img" aria-label="Diagrama: los 276 leads sin responder entran a un sistema que solicita email o teléfono de contacto; con email va a una secuencia de Resend, con teléfono a un chatbot de WhatsApp de Altera; ambos caminos terminan en cita agendada o escalado a humano.">
+          <defs>
+            <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <!-- 276 leads -->
+          <rect x="10" y="95" width="150" height="60" rx="10" fill="var(--coral-soft)" stroke="var(--coral)" stroke-width="2.5"/>
+          <text x="85" y="120" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="18" fill="var(--coral)">276 leads</text>
+          <text x="85" y="138" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--coral)">sin responder</text>
+
+          <!-- to contact-capture -->
+          <line x1="160" y1="125" x2="234" y2="125" stroke="currentColor" stroke-width="1.6" marker-end="url(#arrow2)"/>
+          <text x="197" y="114" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-soft)">1er mensaje</text>
+
+          <!-- Contact capture node -->
+          <rect x="240" y="80" width="160" height="90" rx="14" fill="var(--paper-2)" stroke="var(--ink-soft)" stroke-width="2"/>
+          <text x="320" y="115" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="15">Pide contacto</text>
+          <text x="320" y="133" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--ink-soft)">email o teléfono,</text>
+          <text x="320" y="147" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--ink-soft)">con contexto real</text>
+
+          <!-- to Resend -->
+          <line x1="400" y1="105" x2="464" y2="60" stroke="var(--teal)" stroke-width="1.8" marker-end="url(#arrow2)"/>
+          <text x="435" y="70" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-soft)">dejó email</text>
+
+          <!-- to Altera -->
+          <line x1="400" y1="145" x2="464" y2="190" stroke="var(--teal)" stroke-width="1.8" marker-end="url(#arrow2)"/>
+          <text x="435" y="205" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-soft)">dejó teléfono</text>
+
+          <!-- Resend node -->
+          <rect x="470" y="20" width="160" height="70" rx="14" fill="var(--paper-2)" stroke="var(--teal)" stroke-width="2.5"/>
+          <text x="550" y="50" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="17" fill="var(--teal)">Resend</text>
+          <text x="550" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-soft)">secuencia de email</text>
+
+          <!-- Altera node -->
+          <rect x="470" y="160" width="160" height="70" rx="14" fill="var(--paper-2)" stroke="var(--teal)" stroke-width="2.5"/>
+          <text x="550" y="190" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="17" fill="var(--teal)">Altera</text>
+          <text x="550" y="208" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-soft)">chatbot de WhatsApp</text>
+
+          <!-- both -> outcome -->
+          <line x1="630" y1="55" x2="704" y2="105" stroke="currentColor" stroke-width="1.6" marker-end="url(#arrow2)" opacity=".85"/>
+          <line x1="630" y1="195" x2="704" y2="145" stroke="currentColor" stroke-width="1.6" marker-end="url(#arrow2)" opacity=".85"/>
+
+          <!-- Cita agendada -->
+          <rect x="710" y="95" width="180" height="60" rx="10" fill="var(--coral-soft)" stroke="var(--coral)" stroke-width="2.5"/>
+          <text x="800" y="120" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="14" fill="var(--coral)">Cita agendada</text>
+          <text x="800" y="138" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--coral)">o escalado a humano</text>
+        </svg>
+        <figcaption>El dashboard dice a quién escribir; el sistema pide el contacto y nutre por el canal correcto — email de baja fricción vía Resend, conversación real vía Altera.</figcaption>
+      </figure>
+    </div>
+
+    <div class="case-block">
+      <p>Hoy, aunque tengas la lista de 276 nombres, alguien tiene que entrar, leer cada comentario y escribir el primer mensaje pidiendo su contacto. Esto es lo que automatizamos:</p>
+      <ul>
+        <li><b>Mensaje con contexto real</b>, no genérico — "Vimos tu comentario en [vídeo] sobre [su caso]... ¿nos dejas tu email o WhatsApp para ayudarte?" — es el propio canal el que pide el dato, con un motivo de contacto legítimo y verificable.</li>
+        <li><b>Dos canales según el lead.</b> Email vía <b>Resend</b> para nutrir con contenido y recordatorios a bajo coste; <b>WhatsApp con Altera</b> cuando hace falta conversación real — cualifica, resuelve dudas básicas y solo te avisa cuando hay intención seria de agendar.</li>
+        <li><b>Cierra el embudo completo.</b> Detección (JEV + Claude) → contacto (Resend / Altera) → conversión (tú). Dejas de vender "una lista de leads" y pasas a vender el sistema entero.</li>
+      </ul>
+      <p style="margin-top:14px;font-size:.85em;color:var(--ink-soft)">Nota: quien contacta a cada persona es siempre el propio doctor, con un fin legítimo (atención al paciente) y sobre su propia audiencia — el sistema solo automatiza el primer mensaje y la cualificación.</p>
+    </div>
+  </section>
+
+  <footer class="cta">
+    <h2>De "no sé qué comentarios contestar" a un sistema que responde solo</h2>
+    <p>El panel ya existe, ya corre sobre tus datos reales, y ya distingue quién contactar hoy. El siguiente paso es decidir si ese primer mensaje lo escribes tú o lo escribe el sistema.</p>
+    <a class="btn mono" href="./dashboard.html" target="_blank" rel="noopener">Ver el panel de leads →</a>
+    <div class="note">Datos reales de @EscueladeAlopecia · 68 vídeos (2023-2026) · 2.915 comentarios · clasificación JEV + revisión semántica</div>
+  </footer>
+
+</div>
+<script>
+(function(){
+  var LEADS = [{"type":"pedir_cita_agendar","author":"@claudiagomezbernal8027","text":"Dr buenos días  Me podría atender por favor darme una cita, no se como contactarlo 🙏🏻🙏🏻","video":"Qué hacer si te duele el pelo : tricodinia","replied":false},{"type":"pedir_cita_agendar","author":"@franpazoreona","text":"Yo quiero tapar la parte trasera , tengo .50 años . Para no ser un calvo tipo Monge !!!! Como hacemos doc?? Voy a tu clínica ?","video":"En 10 años ya NO estaré usando PASTILLAS par el PELO y TÚ TAMPOCO","replied":false},{"type":"pedir_cita_agendar","author":"@Zorret","text":"Hola, tienes clínica? Por pedirte cita. Gracias","video":"Ir al GYM y quedarte CALVO","replied":false},{"type":"pedir_cita_agendar","author":"@flormariacrisostomo3468","text":"Buenas tardes dr!!a través de que medio pueda coger cita con ud??","video":"Cada 5 AÑOS tu ALOPECIA EMPEORA 1 GRADO : COMPRUEBA TUS GENES","replied":false},{"type":"pedir_cita_agendar","author":"@patriciafernandezsantoro4846","text":"Dr UD atiende x videollamada? Tengo caída de cabello x stress creo y aparte pre menopausia. 🇦🇷🙌🏻 Gracias x hablar de las mujeres en este tema.","video":"ALOPECIA FEMENINA: lo que DEBES SABER si te estás quedando CALVA","replied":false},{"type":"lead_potencial","author":"@user-nd2vq6qw5i","text":"He ido al medico de cabecera y a un dermatólogo de pago y ambos coinciden con que tengo Alopecia Androgenética, pero ninguno de los 2 accede a mandarme finaterida/dutasterida, dicen que es demasiado fuerte. Solo acceden a mandarme Minoxidil. ¿Qué puedo hacer?","video":"En 10 años ya NO estaré usando PASTILLAS par el PELO y TÚ TAMPOCO","replied":false},{"type":"lead_potencial","author":"@santiago2893","text":"Tengo 58 años, mi abuelo materno no era calvo, y mi padre tampoco, y yo me estoy quedando calvo a pasos agigantados. Como lo ves o veis???? Gracias y saludos","video":"No culpes a tu PADRE: Tu MADRE decide si te quedas CALVO","replied":false},{"type":"lead_potencial","author":"@sergiocantero8073","text":"Abuelo materno calvo a los 20 y mi padre coronilla a los 50. Yo actualmente 38 años algo de entradas y pelo fino. Puedo salvarme doctor?","video":"No culpes a tu PADRE: Tu MADRE decide si te quedas CALVO","replied":false},{"type":"lead_potencial","author":"@jonathanwiniarczyk8244","text":"Hola! Puede ser que una muela de juicio picada e infectada durante mucho tiempo me haga caer el pelo en la parte frontal?","video":"NO es NORMAL que tu entrada IZQUIERDA esté PEOR que la DERECHA","replied":false},{"type":"lead_potencial","author":"@alucard254","text":"Buenas Óscar, estoy planteando seriamente hacerme implante en las entradas, pero no he probado la finasteride, y si es necesario tomarlo antes del injerto al menos 1 año, para que el injerto sea menor...","video":"Qué hacer si te duele el pelo : tricodinia","replied":false},{"type":"seguimiento_recontacto","author":"@ZonaDigital-wg3od","text":"Hola oscar llevo 5 meses con dutasteride 0,5 y 5 mg de minoxidil, cuando arranque a los 15 dias tuve un shedding, se me cayo el pelo y de ahi todo bien, me crecio mucho el pelo","video":"200.000 € cuesta clonar tu pelo","replied":false},{"type":"seguimiento_recontacto","author":"@lolapma","text":"hola, yo uso minoxidil y me va bien, pero mi pelo no tiene densidad ninguna. ¿Se puede hacer algo? Muchas gracias","video":"En 10 años ya NO estaré usando PASTILLAS par el PELO y TÚ TAMPOCO","replied":false},{"type":"seguimiento_recontacto","author":"@dorfi4702","text":"58 años. Tomo dutasterida y Minoxidil oral y tópico, no mejoro, pero no empeoró desde hace tres años. Soy VI M3","video":"Dime TU PATRON de ALOPECIA y EDAD y te digo si te SALVAS del INJERTO","replied":false},{"type":"seguimiento_recontacto","author":"@gabrielmatarin573","text":"Pues yo tengo una combinacion de patron femenino y frontal. M2F2. Llevo 3 años tomando Finasterida y tengo 56 años. Algo ha mejorado pero poca cosa.","video":"Dime TU PATRON de ALOPECIA y EDAD y te digo si te SALVAS del INJERTO","replied":false},{"type":"seguimiento_recontacto","author":"@chicopachuco2758","text":"Doctor, disculpe. Si he usado el minoxidil NR-11 (12%) y empiezo a usar uno de 5% ¿tendrá menos efectos? ¿Se genera tolerancia al minoxidil por la concentración?","video":"Dime TU PATRON de ALOPECIA y EDAD y te digo si te SALVAS del INJERTO","replied":false}];
+  var TYPE_META = {"pedir_cita_agendar":{"label":"Pedir cita / Agendar","tagClass":"hot","total":23},"lead_potencial":{"label":"Lead potencial","tagClass":"warm","total":88},"seguimiento_recontacto":{"label":"Seguimiento / Recontacto","tagClass":"follow","total":179}};
+  var TYPE_ORDER = ['pedir_cita_agendar','lead_potencial','seguimiento_recontacto'];
+
+  function esc(s){
+    var d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+  }
+
+  function render(){
+    var container = document.getElementById('evidenceGroups');
+    var html = '';
+    TYPE_ORDER.forEach(function(type){
+      var meta = TYPE_META[type];
+      var items = LEADS.filter(function(l){ return l.type === type; });
+      html += '<details class="ev-group" data-type="' + type + '">';
+      html += '<summary><span class="tag ' + meta.tagClass + '">' + meta.label + '</span><span class="n">muestra de ' + items.length + ' de ' + meta.total + ' totales</span><span class="arrow">&#9656;</span></summary>';
+      html += '<div class="evidence-list">';
+      items.forEach(function(l){
+        html += '<div class="ev-item">';
+        html += '<div class="ev-top"><span class="who">' + esc(l.author) + '</span>' + (l.replied ? '<span class="replied-chip">Ya respondido</span>' : '') + '</div>';
+        html += '<p>“' + esc(l.text) + '”</p>';
+        html += '<div class="video">en “' + esc(l.video) + '”</div>';
+        html += '</div>';
+      });
+      html += '</div></details>';
+    });
+    container.innerHTML = html;
+  }
+
+  render();
+
+  var toggleBtn = document.getElementById('toggleAllBtn');
+  var expanded = false;
+  toggleBtn.addEventListener('click', function(){
+    expanded = !expanded;
+    document.querySelectorAll('.ev-group').forEach(function(d){ d.open = expanded; });
+    toggleBtn.textContent = expanded ? 'Contraer los 3 grupos' : 'Desplegar los 3 grupos';
+  });
+})();
+</script>

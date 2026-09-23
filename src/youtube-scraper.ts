@@ -78,52 +78,88 @@ export async function getChannelVideos(
     const channelId = channelSearch.data.items[0].snippet.channelId;
     console.log(`✅ Found channel: ${channelId}\n`);
 
-    // Step 2: Get latest videos from channel
-    const videosResponse = await axios.get(
-      'https://www.googleapis.com/youtube/v3/search',
+    // Step 2: Get latest videos via the channel's "uploads" playlist.
+    // NOTE: we deliberately don't use search.list(order=date) here — YouTube's
+    // search index can lag behind real upload order, so "latest N" from search
+    // silently returns stale/incorrect results. The uploads playlist is the
+    // channel's actual upload history, always accurate, and costs 1 quota
+    // unit per page instead of 100 for search.list.
+    const channelDetails = await axios.get(
+      'https://www.googleapis.com/youtube/v3/channels',
       {
         params: {
-          part: 'snippet',
-          channelId,
-          type: 'video',
-          order: 'date',
+          part: 'contentDetails',
+          id: channelId,
           key: YOUTUBE_API_KEY,
-          maxResults: Math.min(maxResults, 50),
         },
       }
     );
 
-    if (!videosResponse.data.items || videosResponse.data.items.length === 0) {
+    const uploadsPlaylistId =
+      channelDetails.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+
+    if (!uploadsPlaylistId) {
+      console.log('No uploads playlist found for this channel');
+      return getSimulatedVideos(maxResults);
+    }
+
+    let playlistItems: any[] = [];
+    let pageToken: string | undefined = undefined;
+    do {
+      const playlistResponse: any = await axios.get(
+        'https://www.googleapis.com/youtube/v3/playlistItems',
+        {
+          params: {
+            part: 'contentDetails',
+            playlistId: uploadsPlaylistId,
+            maxResults: 50,
+            pageToken,
+            key: YOUTUBE_API_KEY,
+          },
+        }
+      );
+      playlistItems = playlistItems.concat(playlistResponse.data.items || []);
+      pageToken = playlistResponse.data.nextPageToken;
+    } while (pageToken && playlistItems.length < maxResults);
+
+    if (playlistItems.length === 0) {
       console.log('No videos found');
       return getSimulatedVideos(maxResults);
     }
 
-    const videoIds = videosResponse.data.items
-      .map((item: any) => item.id.videoId)
+    const videoIds = playlistItems
+      .map((item: any) => item.contentDetails.videoId)
       .slice(0, maxResults);
 
-    // Step 3: Get video statistics
-    const statsResponse = await axios.get(
-      'https://www.googleapis.com/youtube/v3/videos',
-      {
-        params: {
-          part: 'statistics,snippet',
-          id: videoIds.join(','),
-          key: YOUTUBE_API_KEY,
-        },
-      }
-    );
+    // Step 3: Get video statistics (batched, videos.list allows max 50 ids per call)
+    let statsItems: any[] = [];
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const batch = videoIds.slice(i, i + 50);
+      const statsResponse = await axios.get(
+        'https://www.googleapis.com/youtube/v3/videos',
+        {
+          params: {
+            part: 'statistics,snippet',
+            id: batch.join(','),
+            key: YOUTUBE_API_KEY,
+          },
+        }
+      );
+      statsItems = statsItems.concat(statsResponse.data.items || []);
+    }
 
-    const videos: YouTubeVideo[] = statsResponse.data.items.map((item: any) => ({
-      id: item.id,
-      title: item.snippet.title,
-      description: item.snippet.description,
-      publishedAt: item.snippet.publishedAt,
-      channelTitle: item.snippet.channelTitle,
-      viewCount: parseInt(item.statistics.viewCount || '0'),
-      likeCount: parseInt(item.statistics.likeCount || '0'),
-      commentCount: parseInt(item.statistics.commentCount || '0'),
-    }));
+    const videos: YouTubeVideo[] = statsItems
+      .map((item: any) => ({
+        id: item.id,
+        title: item.snippet.title,
+        description: item.snippet.description,
+        publishedAt: item.snippet.publishedAt,
+        channelTitle: item.snippet.channelTitle,
+        viewCount: parseInt(item.statistics.viewCount || '0'),
+        likeCount: parseInt(item.statistics.likeCount || '0'),
+        commentCount: parseInt(item.statistics.commentCount || '0'),
+      }))
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
     console.log(`✅ Found ${videos.length} videos\n`);
     return videos;
@@ -184,26 +220,37 @@ export async function getVideoComments(
   }
 
   try {
-    const commentsResponse = await axios.get(
-      'https://www.googleapis.com/youtube/v3/commentThreads',
-      {
-        params: {
-          part: 'snippet',
-          videoId,
-          textFormat: 'plainText',
-          key: YOUTUBE_API_KEY,
-          maxResults: Math.min(maxResults, 100),
-          order: 'relevance',
-        },
-      }
-    );
+    // Pagina hasta traer todos los comentarios del vídeo (o hasta maxResults),
+    // en vez de quedarnos con los 100 primeros de una sola llamada.
+    let items: any[] = [];
+    let pageToken: string | undefined = undefined;
 
-    if (!commentsResponse.data.items || commentsResponse.data.items.length === 0) {
+    do {
+      const commentsResponse: any = await axios.get(
+        'https://www.googleapis.com/youtube/v3/commentThreads',
+        {
+          params: {
+            part: 'snippet',
+            videoId,
+            textFormat: 'plainText',
+            key: YOUTUBE_API_KEY,
+            maxResults: 100,
+            order: 'relevance',
+            pageToken,
+          },
+        }
+      );
+
+      items = items.concat(commentsResponse.data.items || []);
+      pageToken = commentsResponse.data.nextPageToken;
+    } while (pageToken && items.length < maxResults);
+
+    if (items.length === 0) {
       console.log(`ℹ️  No comments found for video ${videoId}`);
       return getSimulatedComments(videoId, maxResults);
     }
 
-    const comments: YouTubeComment[] = commentsResponse.data.items
+    const comments: YouTubeComment[] = items
       .map((thread: any) => {
         const snippet = thread.snippet.topLevelComment.snippet;
         return {
