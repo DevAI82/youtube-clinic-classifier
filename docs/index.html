@@ -24,14 +24,17 @@
   .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:.75em;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);font-weight:600}
 
   header.hero{padding:56px 0 40px;border-bottom:1px solid var(--line)}
-  header.hero .brand-logo{width:200px;height:auto;border-radius:10px;margin-bottom:24px;display:block;box-shadow:var(--shadow)}
-  header.hero .brand-logo.logo-dark{display:none}
+  header.hero .logo-row{display:flex;align-items:center;gap:16px;margin-bottom:26px;flex-wrap:wrap}
+  header.hero .logo-row .x{color:var(--ink-soft);font-size:1.1em}
+  header.hero .clinic-logo{height:56px;width:auto;display:block}
+  header.hero .brand-logo{width:150px;height:auto;border-radius:10px;display:block;box-shadow:var(--shadow)}
+  header.hero .logo-dark{display:none}
   @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]) header.hero .brand-logo.logo-light{display:none}
-    :root:not([data-theme="light"]) header.hero .brand-logo.logo-dark{display:block}
+    :root:not([data-theme="light"]) header.hero .logo-light{display:none}
+    :root:not([data-theme="light"]) header.hero .logo-dark{display:block}
   }
-  :root[data-theme="dark"] header.hero .brand-logo.logo-light{display:none}
-  :root[data-theme="dark"] header.hero .brand-logo.logo-dark{display:block}
+  :root[data-theme="dark"] header.hero .logo-light{display:none}
+  :root[data-theme="dark"] header.hero .logo-dark{display:block}
   header.hero .eyebrow{margin-bottom:14px;display:block}
   header.hero h1{font-size:clamp(1.9em,5vw,2.6em);margin:0 0 10px;line-height:1.08}
   header.hero p.lede{color:var(--ink-soft);font-size:1.05em;max-width:56ch;margin:0}
@@ -129,10 +132,15 @@
 <div class="wrap">
 
   <header class="hero">
-    <a href="https://www.altera-es.com/" target="_blank" rel="noopener">
-      <img class="brand-logo logo-light" src="./assets/altera-claro.jpg" alt="Altera">
-      <img class="brand-logo logo-dark" src="./assets/altera-oscuro.jpg" alt="Altera">
-    </a>
+    <div class="logo-row">
+      <img class="clinic-logo logo-light" src="./assets/escuela-alopecia-claro.jpg" alt="Escuela de Alopecia">
+      <img class="clinic-logo logo-dark" src="./assets/escuela-alopecia-oscuro.jpg" alt="Escuela de Alopecia">
+      <span class="x">×</span>
+      <a href="https://www.altera-es.com/" target="_blank" rel="noopener">
+        <img class="brand-logo logo-light" src="./assets/altera-claro.jpg" alt="Altera">
+        <img class="brand-logo logo-dark" src="./assets/altera-oscuro.jpg" alt="Altera">
+      </a>
+    </div>
     <span class="eyebrow">Escuela de Alopecia · Análisis de comentarios</span>
     <h1>Tu canal esconde 290 pacientes que ya te están pidiendo ayuda. Solo le respondiste a 14.</h1>
     <p class="lede">Analizamos los 2.915 comentarios de los 68 vídeos de @EscueladeAlopecia. Esto es lo que encontramos — y lo que se sigue perdiendo cada semana.</p>
